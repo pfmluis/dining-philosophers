@@ -11,13 +11,11 @@ type Fork struct{ sync.Mutex }
 
 type Philosopher struct {
 	name      string
-	waitGroup *sync.WaitGroup
 	rightFork *Fork
 	leftFork  *Fork
 }
 
 func (p *Philosopher) Eat() {
-	defer p.waitGroup.Done()
 	p.leftFork.Lock()
 	p.rightFork.Lock()
 
@@ -30,26 +28,23 @@ func (p *Philosopher) Eat() {
 }
 
 func main() {
-	var waitGroup sync.WaitGroup
+	var wg sync.WaitGroup
 	philosopherNames := []string{"Confucius", "Socrates", "Plato", "Descartes", "Kant"}
-	forks := make([]*Fork, len(philosopherNames))
-
-	for i := range forks {
-		forks[i] = new(Fork)
-	}
-
+	forks := []*Fork{new(Fork), new(Fork), new(Fork), new(Fork), new(Fork)}
 	for i, name := range philosopherNames {
 		philosopher := Philosopher{
 			name:      name,
-			waitGroup: &waitGroup,
 			leftFork:  forks[i],
 			rightFork: forks[(i+1)%len(forks)],
 		}
 
-		waitGroup.Add(1)
-		go philosopher.Eat()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			philosopher.Eat()
+		}()
 	}
 
-	waitGroup.Wait()
+	wg.Wait()
 	fmt.Println("Everyone is done eating!")
 }
